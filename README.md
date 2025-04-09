@@ -10,7 +10,7 @@ Extension traits for Result and Option with tap, map, and error accumulation
 
 ```toml
 [dependencies]
-philiprehberger-result-ext = "0.1.6"
+philiprehberger-result-ext = "0.2.0"
 ```
 
 ## Usage
@@ -42,6 +42,20 @@ group.push(Ok(1));
 group.push(Err("oops"));
 group.push(Ok(3));
 assert!(group.has_errors());
+assert_eq!(group.success_count(), 2);
+assert_eq!(group.values(), &[1, 3]);
+assert_eq!(group.errors(), &["oops"]);
+```
+
+### Partition
+
+```rust
+use philiprehberger_result_ext::partition;
+
+let results = vec![Ok(1), Err("a"), Ok(3), Err("b")];
+let (oks, errs) = partition(results);
+assert_eq!(oks, vec![1, 3]);
+assert_eq!(errs, vec!["a", "b"]);
 ```
 
 ## API
@@ -58,6 +72,11 @@ assert!(group.has_errors());
 | `ResultGroup::new()` | Create an error accumulator |
 | `ResultGroup::push(result)` | Add a result to the group |
 | `ResultGroup::finish()` | Get accumulated Ok values or all errors |
+| `ResultGroup::success_count()` | Number of successes |
+| `ResultGroup::values()` | Reference to accumulated values |
+| `ResultGroup::errors()` | Reference to accumulated errors |
+| `ResultGroup::into_parts()` | Consume into (oks, errs) tuple |
+| `partition(iter)` | Split Results into (Vec<T>, Vec<E>) |
 
 
 ## Development
