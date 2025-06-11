@@ -10,7 +10,7 @@ Extension traits for Result and Option with tap, map, and error accumulation
 
 ```toml
 [dependencies]
-philiprehberger-result-ext = "0.2.0"
+philiprehberger-result-ext = "0.2.1"
 ```
 
 ## Usage
