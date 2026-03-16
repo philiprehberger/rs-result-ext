@@ -10,7 +10,7 @@ Extension traits for Result and Option with tap, map, and error accumulation.
 
 ```toml
 [dependencies]
-philiprehberger-result-ext = "0.1.5"
+philiprehberger-result-ext = "0.1.6"
 ```
 
 ## Usage
@@ -58,6 +58,14 @@ assert!(group.has_errors());
 | `ResultGroup::new()` | Create an error accumulator |
 | `ResultGroup::push(result)` | Add a result to the group |
 | `ResultGroup::finish()` | Get accumulated Ok values or all errors |
+
+
+## Development
+
+```bash
+cargo test
+cargo clippy -- -D warnings
+```
 
 ## License
 
