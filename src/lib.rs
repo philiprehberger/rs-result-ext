@@ -7,7 +7,7 @@
 //! # Examples
 //!
 //! ```
-//! use philiprehberger_result_ext::{ResultExt, OptionExt, collect_results, ResultGroup};
+//! use philiprehberger_result_ext::{ResultExt, OptionExt, collect_results, partition, ResultGroup};
 //!
 //! // Tap for side effects
 //! let value = Ok::<_, &str>(42)
@@ -278,14 +278,70 @@ impl<T, E> ResultGroup<T, E> {
     }
 
     /// Returns `true` if any errors have been accumulated.
+    #[must_use]
     pub fn has_errors(&self) -> bool {
         !self.errs.is_empty()
     }
 
     /// Returns the number of errors accumulated so far.
+    #[must_use]
     pub fn error_count(&self) -> usize {
         self.errs.len()
     }
+
+    /// Returns the number of successful values accumulated so far.
+    #[must_use]
+    pub fn success_count(&self) -> usize {
+        self.oks.len()
+    }
+
+    /// Returns a reference to the accumulated success values.
+    #[must_use]
+    pub fn values(&self) -> &[T] {
+        &self.oks
+    }
+
+    /// Returns a reference to the accumulated errors.
+    #[must_use]
+    pub fn errors(&self) -> &[E] {
+        &self.errs
+    }
+
+    /// Consumes the group and returns the success values and errors as separate vectors.
+    #[must_use]
+    pub fn into_parts(self) -> (Vec<T>, Vec<E>) {
+        (self.oks, self.errs)
+    }
+}
+
+/// Separates an iterator of `Result` values into a tuple of successes and errors.
+///
+/// Unlike [`collect_results`], this always returns both collections regardless
+/// of whether errors are present.
+///
+/// # Examples
+///
+/// ```
+/// use philiprehberger_result_ext::partition;
+///
+/// let results = vec![Ok(1), Err("a"), Ok(3), Err("b")];
+/// let (oks, errs) = partition(results);
+/// assert_eq!(oks, vec![1, 3]);
+/// assert_eq!(errs, vec!["a", "b"]);
+/// ```
+#[must_use]
+pub fn partition<T, E>(results: impl IntoIterator<Item = Result<T, E>>) -> (Vec<T>, Vec<E>) {
+    let mut oks = Vec::new();
+    let mut errs = Vec::new();
+
+    for item in results {
+        match item {
+            Ok(v) => oks.push(v),
+            Err(e) => errs.push(e),
+        }
+    }
+
+    (oks, errs)
 }
 
 impl<T, E> Default for ResultGroup<T, E> {

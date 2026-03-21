@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 (2026-03-21)
+
+- Add partition() function for splitting iterator of Results into (Vec<T>, Vec<E>)
+- Add ResultGroup accessor methods: success_count(), values(), errors(), into_parts()
+- Add #[must_use] attributes on key functions and methods
+
 ## 0.1.6 (2026-03-17)
 
 - Add readme, rust-version, documentation to Cargo.toml
