@@ -3,6 +3,7 @@
 [![CI](https://github.com/philiprehberger/rs-result-ext/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rs-result-ext/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/philiprehberger-result-ext.svg)](https://crates.io/crates/philiprehberger-result-ext)
 [![License](https://img.shields.io/github/license/philiprehberger/rs-result-ext)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ec6cb9)](https://github.com/sponsors/philiprehberger)
 
 Extension traits for Result and Option with tap, map, and error accumulation
 
