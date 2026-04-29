@@ -10,7 +10,7 @@ Extension traits for Result and Option with tap, map, and error accumulation
 
 ```toml
 [dependencies]
-philiprehberger-result-ext = "0.2.2"
+philiprehberger-result-ext = "0.3.0"
 ```
 
 ## Usage
@@ -66,12 +66,17 @@ assert_eq!(errs, vec!["a", "b"]);
 | `ResultExt::tap_err(f)` | Inspect Err value without consuming |
 | `ResultExt::map_both(ok_fn, err_fn)` | Map both Ok and Err variants |
 | `ResultExt::or_try(f)` | Try to recover from an error |
+| `ResultExt::tap(f)` | Inspect both variants uniformly without consuming |
 | `OptionExt::tap_some(f)` | Inspect Some value without consuming |
 | `OptionExt::tap_none(f)` | Execute function on None |
+| `OptionExt::ok_or_default()` | Unwrap or `T::default()` for `None` |
 | `collect_results(iter)` | Collect all Ok values or all Err values |
 | `ResultGroup::new()` | Create an error accumulator |
+| `ResultGroup::with_capacity(n)` | Pre-allocated accumulator |
 | `ResultGroup::push(result)` | Add a result to the group |
+| `ResultGroup::extend(iter)` | Push every result from an iterator |
 | `ResultGroup::finish()` | Get accumulated Ok values or all errors |
+| `ResultGroup::is_empty()` | True if no successes and no errors |
 | `ResultGroup::success_count()` | Number of successes |
 | `ResultGroup::values()` | Reference to accumulated values |
 | `ResultGroup::errors()` | Reference to accumulated errors |

@@ -88,6 +88,21 @@ pub trait ResultExt<T, E> {
     /// assert_eq!(recovered, Ok(42));
     /// ```
     fn or_try<F: FnOnce(E) -> Result<T, E>>(self, f: F) -> Result<T, E>;
+
+    /// Calls `f` with a reference to `self` regardless of variant, then returns
+    /// `self` unchanged.
+    ///
+    /// Useful for uniform inspection (e.g., logging both branches in one place).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use philiprehberger_result_ext::ResultExt;
+    ///
+    /// let result = Ok::<i32, &str>(7).tap(|r| assert!(r.is_ok()));
+    /// assert_eq!(result, Ok(7));
+    /// ```
+    fn tap(self, f: impl FnOnce(&Result<T, E>)) -> Self;
 }
 
 impl<T, E> ResultExt<T, E> for Result<T, E> {
@@ -117,6 +132,11 @@ impl<T, E> ResultExt<T, E> for Result<T, E> {
             Ok(v) => Ok(v),
             Err(e) => f(e),
         }
+    }
+
+    fn tap(self, f: impl FnOnce(&Result<T, E>)) -> Self {
+        f(&self);
+        self
     }
 }
 
@@ -166,6 +186,23 @@ pub trait OptionExt<T> {
     /// assert_eq!(result, Err("no value"));
     /// ```
     fn ok_or_else_try<E, F: FnOnce() -> Result<T, E>>(self, f: F) -> Result<T, E>;
+
+    /// Returns the contained `Some` value, or the [`Default`] value of `T` if `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use philiprehberger_result_ext::OptionExt;
+    ///
+    /// let v: Option<i32> = None;
+    /// assert_eq!(v.ok_or_default(), 0);
+    ///
+    /// let s: Option<String> = Some("hi".to_string());
+    /// assert_eq!(s.ok_or_default(), "hi");
+    /// ```
+    fn ok_or_default(self) -> T
+    where
+        T: Default;
 }
 
 impl<T> OptionExt<T> for Option<T> {
@@ -188,6 +225,13 @@ impl<T> OptionExt<T> for Option<T> {
             Some(v) => Ok(v),
             None => f(),
         }
+    }
+
+    fn ok_or_default(self) -> T
+    where
+        T: Default,
+    {
+        self.unwrap_or_default()
     }
 }
 
@@ -259,12 +303,58 @@ impl<T, E> ResultGroup<T, E> {
         }
     }
 
+    /// Creates a new empty `ResultGroup` with each underlying buffer
+    /// pre-allocated to hold at least `capacity` items.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use philiprehberger_result_ext::ResultGroup;
+    ///
+    /// let mut group: ResultGroup<i32, &str> = ResultGroup::with_capacity(64);
+    /// for i in 0..10 {
+    ///     group.push(Ok(i));
+    /// }
+    /// assert_eq!(group.success_count(), 10);
+    /// ```
+    #[must_use]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            oks: Vec::with_capacity(capacity),
+            errs: Vec::with_capacity(capacity),
+        }
+    }
+
     /// Pushes a `Result` into the group, accumulating its value or error.
     pub fn push(&mut self, result: Result<T, E>) {
         match result {
             Ok(v) => self.oks.push(v),
             Err(e) => self.errs.push(e),
         }
+    }
+
+    /// Pushes every result from the iterator into this group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use philiprehberger_result_ext::ResultGroup;
+    ///
+    /// let mut group = ResultGroup::new();
+    /// group.extend([Ok::<_, &str>(1), Err("a"), Ok(3)]);
+    /// assert_eq!(group.success_count(), 2);
+    /// assert_eq!(group.error_count(), 1);
+    /// ```
+    pub fn extend<I: IntoIterator<Item = Result<T, E>>>(&mut self, iter: I) {
+        for item in iter {
+            self.push(item);
+        }
+    }
+
+    /// Returns `true` if the group has no successes and no errors.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.oks.is_empty() && self.errs.is_empty()
     }
 
     /// Consumes the group and returns all `Ok` values if there were no errors,
@@ -555,5 +645,69 @@ mod tests {
     fn result_group_default() {
         let group: ResultGroup<i32, &str> = ResultGroup::default();
         assert_eq!(group.finish(), Ok(alloc::vec![]));
+    }
+
+    #[test]
+    fn tap_calls_fn_on_ok() {
+        let called = Cell::new(false);
+        let result = Ok::<i32, &str>(7).tap(|r| {
+            assert!(r.is_ok());
+            called.set(true);
+        });
+        assert!(called.get());
+        assert_eq!(result, Ok(7));
+    }
+
+    #[test]
+    fn tap_calls_fn_on_err() {
+        let called = Cell::new(false);
+        let result = Err::<i32, &str>("oops").tap(|r| {
+            assert!(r.is_err());
+            called.set(true);
+        });
+        assert!(called.get());
+        assert_eq!(result, Err("oops"));
+    }
+
+    #[test]
+    fn ok_or_default_some() {
+        let v: Option<i32> = Some(99);
+        assert_eq!(v.ok_or_default(), 99);
+    }
+
+    #[test]
+    fn ok_or_default_none_int() {
+        let v: Option<i32> = None;
+        assert_eq!(v.ok_or_default(), 0);
+    }
+
+    #[test]
+    fn ok_or_default_none_string() {
+        let v: Option<alloc::string::String> = None;
+        assert_eq!(v.ok_or_default(), alloc::string::String::new());
+    }
+
+    #[test]
+    fn result_group_with_capacity() {
+        let group: ResultGroup<i32, &str> = ResultGroup::with_capacity(16);
+        assert!(group.is_empty());
+        assert!(group.values().is_empty());
+        assert!(group.errors().is_empty());
+    }
+
+    #[test]
+    fn result_group_extend() {
+        let mut group = ResultGroup::new();
+        group.extend([Ok::<i32, &str>(1), Err("a"), Ok(3), Err("b")]);
+        assert_eq!(group.success_count(), 2);
+        assert_eq!(group.error_count(), 2);
+    }
+
+    #[test]
+    fn result_group_is_empty() {
+        let mut group: ResultGroup<i32, &str> = ResultGroup::new();
+        assert!(group.is_empty());
+        group.push(Ok(1));
+        assert!(!group.is_empty());
     }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 (2026-04-28)
+
+- Add `ResultExt::tap(f)` — uniform inspection of both variants
+- Add `OptionExt::ok_or_default()` — unwrap or `T::default()`
+- Add `ResultGroup::with_capacity(n)` for pre-allocated accumulation
+- Add `ResultGroup::extend(iter)` to feed an iterator into an existing group
+- Add `ResultGroup::is_empty()` convenience
+
 ## 0.2.3 (2026-03-31)
 
 - Standardize README to 3-badge format with emoji Support section
